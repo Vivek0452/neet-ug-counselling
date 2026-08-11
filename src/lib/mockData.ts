@@ -709,6 +709,51 @@ class DataStore {
 
   listeners: Array<() => void> = [];
 
+  constructor() {
+    if (typeof window !== "undefined") {
+      try {
+        const savedUpdates = localStorage.getItem("neet_updates");
+        if (savedUpdates) this.updates = JSON.parse(savedUpdates);
+
+        const savedStates = localStorage.getItem("neet_states");
+        if (savedStates) this.states = JSON.parse(savedStates);
+
+        const savedColleges = localStorage.getItem("neet_colleges");
+        if (savedColleges) this.colleges = JSON.parse(savedColleges);
+
+        const savedDates = localStorage.getItem("neet_dates");
+        if (savedDates) this.dates = JSON.parse(savedDates);
+
+        const savedCutoffs = localStorage.getItem("neet_cutoffs");
+        if (savedCutoffs) this.cutoffs = JSON.parse(savedCutoffs);
+
+        const savedSeats = localStorage.getItem("neet_seat_matrix");
+        if (savedSeats) this.seatMatrix = JSON.parse(savedSeats);
+
+        const savedContacts = localStorage.getItem("neet_contacts");
+        if (savedContacts) this.contacts = JSON.parse(savedContacts);
+      } catch (e) {
+        console.error("Failed to load from localStorage", e);
+      }
+    }
+  }
+
+  saveToStorage() {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("neet_updates", JSON.stringify(this.updates));
+        localStorage.setItem("neet_states", JSON.stringify(this.states));
+        localStorage.setItem("neet_colleges", JSON.stringify(this.colleges));
+        localStorage.setItem("neet_dates", JSON.stringify(this.dates));
+        localStorage.setItem("neet_cutoffs", JSON.stringify(this.cutoffs));
+        localStorage.setItem("neet_seat_matrix", JSON.stringify(this.seatMatrix));
+        localStorage.setItem("neet_contacts", JSON.stringify(this.contacts));
+      } catch (e) {
+        console.error("Failed to save to localStorage", e);
+      }
+    }
+  }
+
   subscribe(listener: () => void) {
     this.listeners.push(listener);
     return () => {
@@ -717,6 +762,7 @@ class DataStore {
   }
 
   notify() {
+    this.saveToStorage();
     this.listeners.forEach((l) => l());
   }
 
