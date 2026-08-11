@@ -17,35 +17,68 @@ import {
   Briefcase,
   Home,
   BarChart3,
+  Zap,
 } from "lucide-react";
 import { store } from "@/lib/mockData";
 import { CollegeItem, CutoffItem, SeatMatrixItem } from "@/types";
 
 export default function CollegeDetailPage() {
   const params = useParams();
-  const slug = params?.slug as string;
+  const rawSlug = params?.slug as string;
 
   const [college, setCollege] = useState<CollegeItem | null>(null);
   const [cutoffs, setCutoffs] = useState<CutoffItem[]>([]);
   const [seats, setSeats] = useState<SeatMatrixItem[]>([]);
 
   useEffect(() => {
-    const col = store.colleges.find((c) => c.slug === slug);
-    if (col) {
-      setCollege(col);
-      setCutoffs(store.cutoffs.filter((k) => k.college_id === col.id));
-      setSeats(store.seatMatrix.filter((s) => s.college_id === col.id));
-    }
-  }, [slug]);
+    if (!rawSlug) return;
+
+    const loadCollegeData = () => {
+      const decodedSlug = decodeURIComponent(rawSlug).toLowerCase();
+      const col = store.colleges.find(
+        (c) =>
+          c.slug.toLowerCase() === decodedSlug ||
+          c.slug.toLowerCase() === rawSlug.toLowerCase() ||
+          c.id === rawSlug
+      );
+
+      if (col) {
+        setCollege(col);
+        setCutoffs(
+          store.cutoffs.filter(
+            (k) =>
+              k.college_id === col.id ||
+              k.college_name.toLowerCase() === col.name.toLowerCase()
+          )
+        );
+        setSeats(
+          store.seatMatrix.filter(
+            (s) =>
+              s.college_id === col.id ||
+              s.college_name.toLowerCase() === col.name.toLowerCase()
+          )
+        );
+      }
+    };
+
+    loadCollegeData();
+    const unsub = store.subscribe(loadCollegeData);
+    return () => unsub();
+  }, [rawSlug]);
 
   if (!college) {
     return (
-      <div className="py-20 max-w-4xl mx-auto px-4 text-center">
-        <h1 className="text-2xl font-bold text-brand-dark">College Not Found</h1>
-        <p className="text-sm text-slate-500 mt-2">The college you requested is not listed in our database.</p>
+      <div className="py-20 max-w-4xl mx-auto px-4 text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-blue-50 text-brand-blue flex items-center justify-center font-bold mx-auto">
+          <Building2 className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-extrabold text-brand-dark">College Details Not Found</h1>
+        <p className="text-sm text-slate-500 max-w-md mx-auto">
+          The requested medical college could not be located in our active directory.
+        </p>
         <Link
           href="/colleges"
-          className="mt-6 inline-flex items-center space-x-2 bg-brand-blue text-white px-4 py-2 rounded-xl text-xs font-bold"
+          className="inline-flex items-center space-x-2 bg-brand-blue text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md hover:bg-brand-hover transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Colleges Directory</span>
@@ -153,6 +186,40 @@ export default function CollegeDetailPage() {
             </p>
           </div>
         </div>
+
+        {/* Category Seat Matrix */}
+        {seats.length > 0 && (
+          <div className="bg-white border border-brand-border rounded-2xl p-6 shadow-sm space-y-4">
+            <h3 className="font-bold text-lg text-brand-dark flex items-center space-x-2">
+              <Zap className="w-5 h-5 text-amber-500" />
+              <span>Available Category Seats</span>
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left border border-slate-200 rounded-xl overflow-hidden">
+                <thead className="bg-slate-100 font-bold text-brand-dark">
+                  <tr>
+                    <th className="p-3">Course</th>
+                    <th className="p-3">Quota</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">Round</th>
+                    <th className="p-3">Available Seats</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {seats.map((s) => (
+                    <tr key={s.id}>
+                      <td className="p-3 font-bold">{s.course}</td>
+                      <td className="p-3 font-semibold">{s.quota}</td>
+                      <td className="p-3 font-semibold text-emerald-600">{s.category}</td>
+                      <td className="p-3">{s.round}</td>
+                      <td className="p-3 font-bold text-emerald-600">{s.available_seats} Seats</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* College Cutoff Records */}
         <div className="bg-white border border-brand-border rounded-2xl p-6 shadow-sm space-y-4">

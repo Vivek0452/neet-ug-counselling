@@ -110,9 +110,10 @@ export default function CollegesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((c) => (
-              <div
+              <Link
                 key={c.id}
-                className="bg-white border border-brand-border rounded-2xl p-6 flex flex-col justify-between hover:border-brand-blue hover:shadow-lg transition-all group"
+                href={`/colleges/${c.slug}`}
+                className="bg-white border border-brand-border rounded-2xl p-6 flex flex-col justify-between hover:border-brand-blue hover:shadow-lg transition-all group block"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -160,15 +161,12 @@ export default function CollegesPage() {
                   <span className="text-xs text-slate-500">
                     NMC: <strong className="text-emerald-600">{c.nmc_status}</strong>
                   </span>
-                  <Link
-                    href={`/colleges/${c.slug}`}
-                    className="inline-flex items-center space-x-1 text-xs font-extrabold text-brand-blue hover:text-brand-hover"
-                  >
+                  <span className="inline-flex items-center space-x-1 text-xs font-extrabold text-brand-blue group-hover:text-brand-hover">
                     <span>View Details</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
