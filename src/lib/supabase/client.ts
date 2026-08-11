@@ -2,14 +2,19 @@ import { createBrowserClient } from "@supabase/ssr";
 
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseKey) {
     // Return dummy client fallback when Supabase keys are not set
     return {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
-        signInWithPassword: async () => ({ data: { user: { id: "admin-1", email: "admin@neetugcounselling.in" } }, error: null }),
+        signInWithPassword: async () => ({
+          data: { user: { id: "admin-1", email: "admin@neetugcounselling.in" } },
+          error: null,
+        }),
         signOut: async () => ({ error: null }),
       },
       from: () => ({
@@ -24,5 +29,5 @@ export function createClient() {
     } as unknown as ReturnType<typeof createBrowserClient>;
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient(supabaseUrl, supabaseKey);
 }
