@@ -2,7 +2,7 @@ import React from "react";
 import UpdateDetailClient from "./UpdateDetailClient";
 import { store } from "@/lib/mockData";
 
-export const dynamic = "force-dynamic";
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return store.updates.map((u) => ({
