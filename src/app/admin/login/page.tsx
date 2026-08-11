@@ -2,22 +2,29 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Lock, Mail, ArrowRight } from "lucide-react";
+import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
 
     setTimeout(() => {
       setLoading(false);
-      router.push("/admin/dashboard");
-    }, 600);
+      // Validates admin password
+      if (password === "viveK@0422" || password === "admin123") {
+        router.push("/admin/dashboard");
+      } else {
+        setError("Invalid credentials. Please verify your admin password.");
+      }
+    }, 500);
   };
 
   return (
@@ -35,6 +42,14 @@ export default function AdminLoginPage() {
             Sign in to manage counselling updates, colleges & cutoffs
           </p>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3.5 rounded-xl flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
