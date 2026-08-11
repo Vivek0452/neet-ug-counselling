@@ -710,6 +710,20 @@ class DataStore {
   listeners: Array<() => void> = [];
 
   constructor() {
+    this.loadFromStorage();
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", () => {
+        this.loadFromStorage();
+        this.listeners.forEach((l) => l());
+      });
+      window.addEventListener("neet_store_updated", () => {
+        this.loadFromStorage();
+        this.listeners.forEach((l) => l());
+      });
+    }
+  }
+
+  loadFromStorage() {
     if (typeof window !== "undefined") {
       try {
         const savedUpdates = localStorage.getItem("neet_updates");
@@ -748,6 +762,7 @@ class DataStore {
         localStorage.setItem("neet_cutoffs", JSON.stringify(this.cutoffs));
         localStorage.setItem("neet_seat_matrix", JSON.stringify(this.seatMatrix));
         localStorage.setItem("neet_contacts", JSON.stringify(this.contacts));
+        window.dispatchEvent(new Event("neet_store_updated"));
       } catch (e) {
         console.error("Failed to save to localStorage", e);
       }
@@ -755,6 +770,7 @@ class DataStore {
   }
 
   subscribe(listener: () => void) {
+    this.loadFromStorage();
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);
