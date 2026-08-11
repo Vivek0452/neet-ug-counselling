@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Building2, Search, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Building2, Search, X, FileSpreadsheet } from "lucide-react";
 import { store } from "@/lib/mockData";
 import { CollegeItem, StateItem } from "@/types";
 import { slugify } from "@/lib/utils";
+import CsvImporter from "@/components/admin/CsvImporter";
 
 export default function AdminCollegesPage() {
   const [colleges, setColleges] = useState<CollegeItem[]>([]);
   const [states, setStates] = useState<StateItem[]>([]);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [name, setName] = useState("");
@@ -113,6 +115,42 @@ export default function AdminCollegesPage() {
     setIsModalOpen(false);
   };
 
+  const handleCsvImport = (rows: Record<string, any>[]) => {
+    rows.forEach((row) => {
+      const colName = row.name || row.college_name || row.Name;
+      if (!colName) return;
+
+      const slug = slugify(colName);
+      const isGovtVal =
+        row.is_govt !== undefined
+          ? String(row.is_govt).toLowerCase() === "true" || String(row.is_govt) === "1"
+          : (row.type || "").toLowerCase().includes("govt");
+
+      const hostelVal =
+        row.hostel_available !== undefined
+          ? String(row.hostel_available).toLowerCase() === "true" || String(row.hostel_available) === "1"
+          : true;
+
+      store.addCollege({
+        name: colName,
+        slug: slug,
+        state_slug: (row.state_slug || row.state || "rajasthan").toLowerCase().replace(/\s+/g, "-"),
+        city: row.city || "Jaipur",
+        is_govt: isGovtVal,
+        university: row.university || "",
+        nmc_status: row.nmc_status || "Recognized",
+        mbbs_seats: Number(row.mbbs_seats || row.seats || 250),
+        fees_annual: row.fees_annual || row.fees || "",
+        hostel_available: hostelVal,
+        stipend_amount: row.stipend_amount || row.stipend || "",
+        bond_details: row.bond_details || row.bond || "",
+        website_url: row.website_url || row.website || "",
+      });
+    });
+
+    store.addLog("Imported Medical Colleges via CSV", "colleges", `${rows.length} Colleges`);
+  };
+
   const filtered = colleges.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -121,24 +159,35 @@ export default function AdminCollegesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="bg-white border border-brand-border rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-brand-dark tracking-tight">
             Medical Colleges CMS
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Add and manage MBBS government and private medical institutions.
+            Add and manage MBBS government and private medical institutions in bulk via CSV or manual entry.
           </p>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          className="inline-flex items-center space-x-1.5 bg-brand-blue hover:bg-brand-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Medical College</span>
-        </button>
+        <div className="flex items-center space-x-3 shrink-0">
+          <button
+            onClick={() => setIsCsvModalOpen(true)}
+            className="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Import CSV</span>
+          </button>
+          <button
+            onClick={handleOpenAdd}
+            className="inline-flex items-center space-x-1.5 bg-brand-blue hover:bg-brand-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Medical College</span>
+          </button>
+        </div>
       </div>
 
+      {/* Search Toolbar */}
       <div className="relative max-w-md">
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
@@ -150,6 +199,7 @@ export default function AdminCollegesPage() {
         />
       </div>
 
+      {/* Colleges Table */}
       <div className="bg-white border border-brand-border rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
@@ -204,6 +254,7 @@ export default function AdminCollegesPage() {
         </div>
       </div>
 
+      {/* Manual Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl">
@@ -322,6 +373,25 @@ export default function AdminCollegesPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* CSV Importer Modal */}
+      {isCsvModalOpen && (
+        <CsvImporter
+          title="Import Medical Colleges (CSV)"
+          expectedHeaders={[
+            "name",
+            "state_slug",
+            "city",
+            "is_govt",
+            "mbbs_seats",
+            "fees_annual",
+            "stipend_amount",
+            "bond_details",
+          ]}
+          onImport={handleCsvImport}
+          onClose={() => setIsCsvModalOpen(false)}
+        />
       )}
     </div>
   );
