@@ -10,14 +10,41 @@ export default function AdminContactPage() {
   const [contacts, setContacts] = useState<ContactMessage[]>([]);
 
   useEffect(() => {
-    const load = () => setContacts([...store.contacts]);
-    load();
-    const unsub = store.subscribe(load);
+    const fetchLiveMessages = async () => {
+      try {
+        const res = await fetch("/api/contact");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          // Merge with store
+          json.data.forEach((msg: ContactMessage) => {
+            if (!store.contacts.some((c) => c.id === msg.id)) {
+              store.contacts.unshift(msg);
+            }
+          });
+          store.notify();
+        }
+      } catch (err) {
+        console.warn("Failed to fetch live API contact messages:", err);
+      }
+      setContacts([...store.contacts]);
+    };
+
+    fetchLiveMessages();
+    const unsub = store.subscribe(() => setContacts([...store.contacts]));
     return () => unsub();
   }, []);
 
-  const handleStatusChange = (id: string, status: ContactMessage["status"]) => {
+  const handleStatusChange = async (id: string, status: ContactMessage["status"]) => {
     store.updateContactStatus(id, status);
+    try {
+      await fetch("/api/contact", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+    } catch (err) {
+      console.warn("Failed to patch status via API:", err);
+    }
   };
 
   const exportCSV = () => {
