@@ -25,15 +25,40 @@ export default function StateDetailClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (!slug) return;
     const load = () => {
-      const decodedSlug = decodeURIComponent(slug).toLowerCase();
+      const decodedSlug = decodeURIComponent(slug).toLowerCase().trim();
       const st = store.states.find(
-        (s) => s.slug.toLowerCase() === decodedSlug || s.slug.toLowerCase() === slug.toLowerCase()
+        (s) =>
+          s.slug.toLowerCase() === decodedSlug ||
+          s.slug.toLowerCase().replace(/-/g, "") === decodedSlug.replace(/-/g, "") ||
+          s.name.toLowerCase() === decodedSlug ||
+          s.name.toLowerCase().replace(/\s+/g, "-") === decodedSlug ||
+          s.id === decodedSlug
       );
+
       if (st) {
         setStateData(st);
-        setUpdates(store.updates.filter((u) => u.state_slug === st.slug && u.status === "published"));
-        setDates(store.dates.filter((d) => d.state_slug === st.slug));
-        setColleges(store.colleges.filter((c) => c.state_slug === st.slug));
+        const cleanSlug = st.slug.toLowerCase().trim();
+        const cleanName = st.name.toLowerCase().trim();
+
+        const matchState = (targetSlug?: string) => {
+          if (!targetSlug) return false;
+          const clean = targetSlug.toLowerCase().trim();
+          return (
+            clean === cleanSlug ||
+            clean === cleanName ||
+            clean.replace(/-/g, "") === cleanSlug.replace(/-/g, "")
+          );
+        };
+
+        setUpdates(
+          store.updates.filter(
+            (u) => matchState(u.state_slug) && u.status === "published"
+          )
+        );
+        setDates(store.dates.filter((d) => matchState(d.state_slug)));
+        setColleges(store.colleges.filter((c) => matchState(c.state_slug)));
+      } else {
+        setStateData(null);
       }
     };
     load();

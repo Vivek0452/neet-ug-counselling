@@ -6,6 +6,21 @@ interface Props {
   params: { slug: string };
 }
 
+function findStateBySlug(slug: string) {
+  if (!slug) return null;
+  const decodedSlug = decodeURIComponent(slug).toLowerCase().trim();
+  return (
+    store.states.find(
+      (s) =>
+        s.slug.toLowerCase() === decodedSlug ||
+        s.slug.toLowerCase().replace(/-/g, "") === decodedSlug.replace(/-/g, "") ||
+        s.name.toLowerCase() === decodedSlug ||
+        s.name.toLowerCase().replace(/\s+/g, "-") === decodedSlug ||
+        s.id === decodedSlug
+    ) || null
+  );
+}
+
 export async function generateStaticParams() {
   return store.states.map((s) => ({
     slug: s.slug,
@@ -13,12 +28,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const decodedSlug = decodeURIComponent(params.slug).toLowerCase();
-  const stateData = store.states.find(
-    (s) =>
-      s.slug.toLowerCase() === decodedSlug ||
-      s.slug.toLowerCase() === params.slug.toLowerCase()
-  );
+  const stateData = findStateBySlug(params.slug);
 
   if (!stateData) {
     return {
@@ -59,12 +69,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function StateDetailPage({ params }: Props) {
-  const decodedSlug = decodeURIComponent(params.slug).toLowerCase();
-  const stateData = store.states.find(
-    (s) =>
-      s.slug.toLowerCase() === decodedSlug ||
-      s.slug.toLowerCase() === params.slug.toLowerCase()
-  );
+  const stateData = findStateBySlug(params.slug);
 
   const stateSchema = stateData
     ? {
