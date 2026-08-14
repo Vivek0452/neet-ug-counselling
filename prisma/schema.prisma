@@ -5,3 +5,145 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model Update {
+  id                   String    @id @default(uuid())
+  title                String
+  slug                 String    @unique
+  short_description    String?
+  content              String
+  category             String
+  state_slug           String?
+  authority            String
+  round                String?
+  image_url            String?
+  pdf_url              String?
+  official_source_name String?
+  official_source_url  String?
+  published_at         DateTime  @default(now())
+  scheduled_at         DateTime?
+  is_breaking          Boolean   @default(false)
+  is_pinned            Boolean   @default(false)
+  status               String    @default("published")
+  seo_title            String?
+  seo_description      String?
+  created_at           DateTime  @default(now())
+}
+
+model State {
+  id                    String  @id @default(uuid())
+  name                  String
+  slug                  String  @unique
+  counselling_authority String
+  official_website      String
+  registration_link     String?
+  eligibility           String?
+  counselling_process   String?
+  fees_info             String?
+  documents_required    String?
+  status                String  @default("active")
+  seo_title             String?
+  seo_description       String?
+}
+
+model ImportantDate {
+  id            String  @id @default(uuid())
+  event_name    String
+  authority     String
+  state_slug    String?
+  start_date    String
+  end_date      String?
+  description   String?
+  official_link String?
+  status        String  @default("Upcoming")
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  category    String
+  pdf_url     String
+  file_size   String?
+  uploaded_at DateTime @default(now())
+}
+
+model College {
+  id                    String  @id @default(uuid())
+  name                  String
+  slug                  String  @unique
+  state_slug            String
+  city                  String
+  is_govt               Boolean @default(true)
+  university            String?
+  nmc_status            String?
+  mbbs_seats            Int     @default(0)
+  fees_annual           String?
+  hostel_available      Boolean @default(true)
+  stipend_amount        String?
+  bond_details          String?
+  counselling_authority String?
+  website_url           String?
+}
+
+model Cutoff {
+  id           String @id @default(uuid())
+  college_id   String
+  college_name String
+  year         Int
+  state_slug   String
+  category     String
+  quota        String
+  round        String
+  opening_rank Int?
+  closing_rank Int
+}
+
+model SeatMatrix {
+  id              String @id @default(uuid())
+  college_id      String
+  college_name    String
+  state_slug      String
+  course          String
+  category        String
+  quota           String
+  round           String
+  available_seats Int
+}
+
+model MccSection {
+  id          String   @id @default(uuid())
+  section_key String   @unique
+  title       String
+  content     String
+  updated_at  DateTime @default(now())
+}
+
+model ContactMessage {
+  id         String   @id @default(uuid())
+  name       String
+  email      String
+  phone      String?
+  message    String
+  status     String   @default("new")
+  created_at DateTime @default(now())
+}
+
+model AdminLog {
+  id           String   @id @default(uuid())
+  admin_email  String
+  action       String
+  content_type String?
+  content_id   String?
+  details      String?
+  created_at   DateTime @default(now())
+}
+
+model MediaFile {
+  id          String   @id @default(uuid())
+  name        String
+  url         String
+  type        String
+  size        String
+  uploaded_at DateTime @default(now())
+}

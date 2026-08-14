@@ -24,16 +24,21 @@ export default function StateDetailClient({ slug }: { slug: string }) {
 
   useEffect(() => {
     if (!slug) return;
-    const decodedSlug = decodeURIComponent(slug).toLowerCase();
-    const st = store.states.find(
-      (s) => s.slug.toLowerCase() === decodedSlug || s.slug.toLowerCase() === slug.toLowerCase()
-    );
-    if (st) {
-      setStateData(st);
-      setUpdates(store.updates.filter((u) => u.state_slug === st.slug && u.status === "published"));
-      setDates(store.dates.filter((d) => d.state_slug === st.slug));
-      setColleges(store.colleges.filter((c) => c.state_slug === st.slug));
-    }
+    const load = () => {
+      const decodedSlug = decodeURIComponent(slug).toLowerCase();
+      const st = store.states.find(
+        (s) => s.slug.toLowerCase() === decodedSlug || s.slug.toLowerCase() === slug.toLowerCase()
+      );
+      if (st) {
+        setStateData(st);
+        setUpdates(store.updates.filter((u) => u.state_slug === st.slug && u.status === "published"));
+        setDates(store.dates.filter((d) => d.state_slug === st.slug));
+        setColleges(store.colleges.filter((c) => c.state_slug === st.slug));
+      }
+    };
+    load();
+    const unsub = store.subscribe(load);
+    return () => unsub();
   }, [slug]);
 
   if (!stateData) {

@@ -708,18 +708,26 @@ class DataStore {
   media: MediaFile[] = [...INITIAL_MEDIA];
 
   listeners: Array<() => void> = [];
+  private isInitialized = false;
 
   constructor() {
-    this.loadFromStorage();
+    this.ensureInitialized();
+  }
+
+  private ensureInitialized() {
     if (typeof window !== "undefined") {
-      window.addEventListener("storage", () => {
-        this.loadFromStorage();
-        this.listeners.forEach((l) => l());
-      });
-      window.addEventListener("neet_store_updated", () => {
-        this.loadFromStorage();
-        this.listeners.forEach((l) => l());
-      });
+      this.loadFromStorage();
+      if (!this.isInitialized) {
+        this.isInitialized = true;
+        window.addEventListener("storage", () => {
+          this.loadFromStorage();
+          this.listeners.forEach((l) => l());
+        });
+        window.addEventListener("neet_store_updated", () => {
+          this.loadFromStorage();
+          this.listeners.forEach((l) => l());
+        });
+      }
     }
   }
 
@@ -770,7 +778,7 @@ class DataStore {
   }
 
   subscribe(listener: () => void) {
-    this.loadFromStorage();
+    this.ensureInitialized();
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);

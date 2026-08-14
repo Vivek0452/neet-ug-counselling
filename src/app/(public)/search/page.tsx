@@ -15,90 +15,96 @@ function SearchResultsContent() {
   const [results, setResults] = useState<SearchResultItem[]>([]);
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
+    const doSearch = () => {
+      if (!query.trim()) {
+        setResults([]);
+        return;
+      }
 
-    const q = query.toLowerCase();
-    const list: SearchResultItem[] = [];
+      const q = query.toLowerCase();
+      const list: SearchResultItem[] = [];
 
-    // Search Updates
-    store.updates
-      .filter(
-        (u) =>
-          u.status === "published" &&
-          (u.title.toLowerCase().includes(q) ||
-            u.content.toLowerCase().includes(q) ||
-            u.authority.toLowerCase().includes(q))
-      )
-      .forEach((u) => {
-        list.push({
-          id: u.id,
-          title: u.title,
-          type: "update",
-          url: `/updates/${u.slug}`,
-          snippet: u.short_description || u.authority,
-          categoryOrState: u.category,
+      // Search Updates
+      store.updates
+        .filter(
+          (u) =>
+            u.status === "published" &&
+            (u.title.toLowerCase().includes(q) ||
+              u.content.toLowerCase().includes(q) ||
+              u.authority.toLowerCase().includes(q))
+        )
+        .forEach((u) => {
+          list.push({
+            id: u.id,
+            title: u.title,
+            type: "update",
+            url: `/updates/${u.slug}`,
+            snippet: u.short_description || u.authority,
+            categoryOrState: u.category,
+          });
         });
-      });
 
-    // Search States
-    store.states
-      .filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.counselling_authority.toLowerCase().includes(q)
-      )
-      .forEach((s) => {
-        list.push({
-          id: s.id,
-          title: `${s.name} NEET UG Counselling`,
-          type: "state",
-          url: `/state-counselling/${s.slug}`,
-          snippet: s.counselling_authority,
-          categoryOrState: "State",
+      // Search States
+      store.states
+        .filter(
+          (s) =>
+            s.name.toLowerCase().includes(q) ||
+            s.counselling_authority.toLowerCase().includes(q)
+        )
+        .forEach((s) => {
+          list.push({
+            id: s.id,
+            title: `${s.name} NEET UG Counselling`,
+            type: "state",
+            url: `/state-counselling/${s.slug}`,
+            snippet: s.counselling_authority,
+            categoryOrState: "State",
+          });
         });
-      });
 
-    // Search Colleges
-    store.colleges
-      .filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.city.toLowerCase().includes(q) ||
-          c.state_slug.toLowerCase().includes(q)
-      )
-      .forEach((c) => {
-        list.push({
-          id: c.id,
-          title: c.name,
-          type: "college",
-          url: `/colleges/${c.slug}`,
-          snippet: `${c.city}, ${c.state_slug.toUpperCase()} • ${c.is_govt ? "Government" : "Private"}`,
-          categoryOrState: "College",
+      // Search Colleges
+      store.colleges
+        .filter(
+          (c) =>
+            c.name.toLowerCase().includes(q) ||
+            c.city.toLowerCase().includes(q) ||
+            c.state_slug.toLowerCase().includes(q)
+        )
+        .forEach((c) => {
+          list.push({
+            id: c.id,
+            title: c.name,
+            type: "college",
+            url: `/colleges/${c.slug}`,
+            snippet: `${c.city}, ${c.state_slug.toUpperCase()} • ${c.is_govt ? "Government" : "Private"}`,
+            categoryOrState: "College",
+          });
         });
-      });
 
-    // Search Documents
-    store.documents
-      .filter(
-        (d) =>
-          d.title.toLowerCase().includes(q) ||
-          (d.description && d.description.toLowerCase().includes(q))
-      )
-      .forEach((d) => {
-        list.push({
-          id: d.id,
-          title: d.title,
-          type: "document",
-          url: "/documents",
-          snippet: d.description || d.category,
-          categoryOrState: d.category,
+      // Search Documents
+      store.documents
+        .filter(
+          (d) =>
+            d.title.toLowerCase().includes(q) ||
+            (d.description && d.description.toLowerCase().includes(q))
+        )
+        .forEach((d) => {
+          list.push({
+            id: d.id,
+            title: d.title,
+            type: "document",
+            url: "/documents",
+            snippet: d.description || d.category,
+            categoryOrState: d.category,
+          });
         });
-      });
 
-    setResults(list);
+      setResults(list);
+    };
+
+    doSearch();
+    const unsub = store.subscribe(doSearch);
+    return () => unsub();
   }, [query]);
 
   return (
