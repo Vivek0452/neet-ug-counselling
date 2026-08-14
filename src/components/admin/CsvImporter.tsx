@@ -1,14 +1,28 @@
 "use client";
 
 import React, { useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X, FileText } from "lucide-react";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 
 interface CsvImporterProps {
   title: string;
   expectedHeaders: string[];
   onImport: (parsedRows: Record<string, any>[]) => void;
   onClose: () => void;
+}
+
+// Normalize row keys to lowercase and trim spaces/underscores
+function normalizeRowKeys(row: Record<string, any>): Record<string, any> {
+  const normalized: Record<string, any> = {};
+  for (const key of Object.keys(row)) {
+    if (!key) continue;
+    const cleanKey = key.toLowerCase().trim().replace(/[\s-]+/g, "_");
+    normalized[cleanKey] = row[key];
+    // Keep original key as well
+    normalized[key] = row[key];
+  }
+  return normalized;
 }
 
 export default function CsvImporter({
@@ -20,38 +34,97 @@ export default function CsvImporter({
   const [csvText, setCsvText] = useState("");
   const [parsedData, setParsedData] = useState<Record<string, any>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
+  const [fileName, setFileName] = useState<string>("");
   const [error, setError] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        if (results.errors.length > 0) {
-          setError("Error parsing CSV file: " + results.errors[0].message);
+    setError("");
+    setIsProcessing(true);
+    setFileName(file.name);
+
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+
+      if (ext === "xlsx" || ext === "xls") {
+        // Read Excel binary sheet
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rawJson = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
+          defval: "",
+        });
+
+        if (rawJson.length === 0) {
+          setError("The uploaded Excel file contains no data rows.");
+          setParsedData([]);
+          setHeaders([]);
         } else {
-          setHeaders(results.meta.fields || []);
-          setParsedData(results.data as Record<string, any>[]);
-          setError("");
+          const detectedHeaders = Object.keys(rawJson[0]);
+          setHeaders(detectedHeaders);
+          const normalizedRows = rawJson.map(normalizeRowKeys);
+          setParsedData(normalizedRows);
         }
-      },
-    });
+      } else {
+        // Parse CSV/TSV text file
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            if (results.errors.length > 0 && results.data.length === 0) {
+              setError("Error parsing file: " + results.errors[0].message);
+              setParsedData([]);
+            } else {
+              const detectedHeaders = results.meta.fields || [];
+              setHeaders(detectedHeaders);
+              const normalizedRows = (results.data as Record<string, any>[]).map(
+                normalizeRowKeys
+              );
+              setParsedData(normalizedRows);
+            }
+          },
+          error: (err) => {
+            setError("Failed to read file: " + err.message);
+          },
+        });
+      }
+    } catch (err: any) {
+      console.error("File processing error:", err);
+      setError("Failed to parse file: " + (err?.message || "Invalid Excel or CSV file format."));
+      setParsedData([]);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handlePasteParse = () => {
     if (!csvText.trim()) return;
-    Papa.parse(csvText, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        setHeaders(results.meta.fields || []);
-        setParsedData(results.data as Record<string, any>[]);
-        setError("");
-      },
-    });
+    setError("");
+    try {
+      Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.data.length === 0) {
+            setError("No valid CSV data rows found in pasted text.");
+            setParsedData([]);
+          } else {
+            const detectedHeaders = results.meta.fields || [];
+            setHeaders(detectedHeaders);
+            const normalizedRows = (results.data as Record<string, any>[]).map(
+              normalizeRowKeys
+            );
+            setParsedData(normalizedRows);
+          }
+        },
+      });
+    } catch (err: any) {
+      setError("Parsing error: " + err.message);
+    }
   };
 
   const handleConfirmImport = () => {
@@ -71,7 +144,7 @@ export default function CsvImporter({
             </div>
             <div>
               <h3 className="font-extrabold text-base text-brand-dark">{title}</h3>
-              <p className="text-xs text-slate-500">Upload or paste CSV data to import in bulk</p>
+              <p className="text-xs text-slate-500">Upload Excel (.xlsx, .xls) or CSV file to import records in bulk</p>
             </div>
           </div>
           <button
@@ -84,21 +157,29 @@ export default function CsvImporter({
 
         {/* Content */}
         <div className="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
-          {/* File Upload Box */}
-          <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center space-y-3 bg-slate-50/50">
+          {/* File Upload Drop Zone */}
+          <div className="border-2 border-dashed border-slate-300 hover:border-brand-blue rounded-2xl p-6 text-center space-y-3 bg-slate-50/50 transition-colors">
             <Upload className="w-8 h-8 text-brand-blue mx-auto" />
             <div>
-              <label className="cursor-pointer inline-flex items-center space-x-2 bg-brand-blue hover:bg-brand-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md">
-                <span>Select CSV / Excel File</span>
+              <label className="cursor-pointer inline-flex items-center space-x-2 bg-brand-blue hover:bg-brand-hover text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-md">
+                <span>{isProcessing ? "Processing File..." : "Select Excel (.xlsx) or CSV File"}</span>
                 <input
                   type="file"
-                  accept=".csv, .txt"
+                  accept=".xlsx, .xls, .csv, .txt, .tsv"
                   onChange={handleFileUpload}
+                  disabled={isProcessing}
                   className="hidden"
                 />
               </label>
             </div>
-            <p className="text-[11px] text-slate-400">Supported columns: {expectedHeaders.join(", ")}</p>
+            {fileName && (
+              <p className="text-xs font-bold text-emerald-700 bg-emerald-50 py-1 px-3 rounded-md inline-block">
+                Selected File: {fileName}
+              </p>
+            )}
+            <p className="text-[11px] text-slate-400">
+              Expected columns: <strong className="text-slate-600">{expectedHeaders.join(", ")}</strong>
+            </p>
           </div>
 
           {/* Textarea Paste Alternative */}
@@ -116,14 +197,14 @@ export default function CsvImporter({
               onClick={handlePasteParse}
               className="text-xs font-bold text-brand-blue hover:underline"
             >
-              Parse Pasted CSV
+              Parse Pasted Text
             </button>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+            <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+              <span className="font-semibold">{error}</span>
             </div>
           )}
 
@@ -143,7 +224,7 @@ export default function CsvImporter({
                   <thead className="bg-slate-100 font-bold text-slate-700">
                     <tr>
                       {headers.map((h) => (
-                        <th key={h} className="p-2 border-b">
+                        <th key={h} className="p-2 border-b whitespace-nowrap">
                           {h}
                         </th>
                       ))}
@@ -154,7 +235,7 @@ export default function CsvImporter({
                       <tr key={idx} className="hover:bg-slate-50">
                         {headers.map((h) => (
                           <td key={h} className="p-2 truncate max-w-[150px]">
-                            {row[h]}
+                            {String(row[h] ?? "")}
                           </td>
                         ))}
                       </tr>

@@ -34,19 +34,35 @@ export default function AdminSeatMatrixPage() {
 
   const handleCsvImport = (parsedRows: Record<string, any>[]) => {
     const items: Omit<SeatMatrixItem, "id">[] = parsedRows.map((r) => {
+      const getVal = (...keys: string[]) => {
+        for (const k of keys) {
+          const cleanK = k.toLowerCase().trim().replace(/[\s-]+/g, "_");
+          if (r[cleanK] !== undefined && r[cleanK] !== null && String(r[cleanK]).trim() !== "") {
+            return String(r[cleanK]).trim();
+          }
+          if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== "") {
+            return String(r[k]).trim();
+          }
+        }
+        return "";
+      };
+
+      const collegeName = getVal("college_name", "college", "name", "institution", "college_full_name");
       const col = colleges.find(
-        (c) => c.name.toLowerCase() === (r.college_name || "").toLowerCase()
+        (c) => c.name.toLowerCase().trim() === collegeName.toLowerCase()
       ) || colleges[0];
+
+      const seatsStr = getVal("available_seats", "seats", "total_seats", "available", "intake", "seat_count");
 
       return {
         college_id: col ? col.id : "col-1",
-        college_name: r.college_name || (col ? col.name : "Medical College"),
-        state_slug: r.state || (col ? col.state_slug : "rajasthan"),
-        course: r.course || "MBBS",
-        category: r.category || "General",
-        quota: r.quota || "AIQ",
-        round: r.round || "Round 1",
-        available_seats: Number(r.available_seats) || 10,
+        college_name: collegeName || (col ? col.name : "Medical College"),
+        state_slug: (getVal("state_slug", "state", "state_name") || (col ? col.state_slug : "rajasthan")).toLowerCase().replace(/\s+/g, "-"),
+        course: getVal("course", "degree", "program") || "MBBS",
+        category: getVal("category", "seat_category", "caste_category") || "General",
+        quota: getVal("quota", "seat_quota", "category_quota") || "AIQ",
+        round: getVal("round", "counselling_round", "allotment_round") || "Round 1",
+        available_seats: Number(seatsStr.replace(/,/g, "")) || 10,
       };
     });
 

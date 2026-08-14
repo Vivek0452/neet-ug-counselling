@@ -117,38 +117,53 @@ export default function AdminCollegesPage() {
 
   const handleCsvImport = (rows: Record<string, any>[]) => {
     rows.forEach((row) => {
-      const colName = row.name || row.college_name || row.Name;
+      const getVal = (...keys: string[]) => {
+        for (const k of keys) {
+          const cleanK = k.toLowerCase().trim().replace(/[\s-]+/g, "_");
+          if (row[cleanK] !== undefined && row[cleanK] !== null && String(row[cleanK]).trim() !== "") {
+            return String(row[cleanK]).trim();
+          }
+          if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== "") {
+            return String(row[k]).trim();
+          }
+        }
+        return "";
+      };
+
+      const colName = getVal("name", "college_name", "college", "institution", "college name");
       if (!colName) return;
 
       const slug = slugify(colName);
-      const isGovtVal =
-        row.is_govt !== undefined
-          ? String(row.is_govt).toLowerCase() === "true" || String(row.is_govt) === "1"
-          : (row.type || "").toLowerCase().includes("govt");
+      const isGovtStr = getVal("is_govt", "type", "ownership", "govt/private", "is govt");
+      const isGovtVal = isGovtStr
+        ? isGovtStr.toLowerCase().includes("govt") || isGovtStr.toLowerCase() === "true" || isGovtStr === "1"
+        : true;
 
-      const hostelVal =
-        row.hostel_available !== undefined
-          ? String(row.hostel_available).toLowerCase() === "true" || String(row.hostel_available) === "1"
-          : true;
+      const hostelStr = getVal("hostel_available", "hostel", "hostel available");
+      const hostelVal = hostelStr
+        ? hostelStr.toLowerCase() === "true" || hostelStr === "1" || hostelStr.toLowerCase().includes("yes")
+        : true;
+
+      const seatsStr = getVal("mbbs_seats", "seats", "mbbs seats", "total_seats", "intake");
 
       store.addCollege({
         name: colName,
         slug: slug,
-        state_slug: (row.state_slug || row.state || "rajasthan").toLowerCase().replace(/\s+/g, "-"),
-        city: row.city || "Jaipur",
+        state_slug: (getVal("state_slug", "state", "state name") || "rajasthan").toLowerCase().replace(/\s+/g, "-"),
+        city: getVal("city", "location", "district") || "Jaipur",
         is_govt: isGovtVal,
-        university: row.university || "",
-        nmc_status: row.nmc_status || "Recognized",
-        mbbs_seats: Number(row.mbbs_seats || row.seats || 250),
-        fees_annual: row.fees_annual || row.fees || "",
+        university: getVal("university", "affiliation") || "",
+        nmc_status: getVal("nmc_status", "nmc", "status") || "Recognized",
+        mbbs_seats: Number(seatsStr.replace(/,/g, "")) || 250,
+        fees_annual: getVal("fees_annual", "fees", "fee", "tuition_fee", "annual_fee") || "",
         hostel_available: hostelVal,
-        stipend_amount: row.stipend_amount || row.stipend || "",
-        bond_details: row.bond_details || row.bond || "",
-        website_url: row.website_url || row.website || "",
+        stipend_amount: getVal("stipend_amount", "stipend", "internship_stipend") || "",
+        bond_details: getVal("bond_details", "bond", "service_bond") || "",
+        website_url: getVal("website_url", "website", "url", "link") || "",
       });
     });
 
-    store.addLog("Imported Medical Colleges via CSV", "colleges", `${rows.length} Colleges`);
+    store.addLog("Imported Medical Colleges via Excel/CSV", "colleges", `${rows.length} Colleges`);
   };
 
   const filtered = colleges.filter(

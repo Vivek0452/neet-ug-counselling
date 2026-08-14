@@ -36,20 +36,37 @@ export default function AdminCutoffPage() {
 
   const handleCsvImport = (parsedRows: Record<string, any>[]) => {
     const items: Omit<CutoffItem, "id">[] = parsedRows.map((r) => {
+      const getVal = (...keys: string[]) => {
+        for (const k of keys) {
+          const cleanK = k.toLowerCase().trim().replace(/[\s-]+/g, "_");
+          if (r[cleanK] !== undefined && r[cleanK] !== null && String(r[cleanK]).trim() !== "") {
+            return String(r[cleanK]).trim();
+          }
+          if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== "") {
+            return String(r[k]).trim();
+          }
+        }
+        return "";
+      };
+
+      const collegeName = getVal("college_name", "college", "name", "institution", "college_full_name");
       const col = colleges.find(
-        (c) => c.name.toLowerCase() === (r.college_name || "").toLowerCase()
+        (c) => c.name.toLowerCase().trim() === collegeName.toLowerCase()
       ) || colleges[0];
+
+      const closingStr = getVal("closing_rank", "closing", "rank", "cutoff", "cutoff_rank", "last_rank");
+      const openingStr = getVal("opening_rank", "opening", "first_rank");
 
       return {
         college_id: col ? col.id : "col-1",
-        college_name: r.college_name || (col ? col.name : "Medical College"),
-        year: Number(r.year) || 2025,
-        state_slug: r.state || (col ? col.state_slug : "rajasthan"),
-        category: r.category || "General",
-        quota: r.quota || "AIQ",
-        round: r.round || "Round 1",
-        opening_rank: r.opening_rank ? Number(r.opening_rank) : undefined,
-        closing_rank: Number(r.closing_rank) || 1000,
+        college_name: collegeName || (col ? col.name : "Medical College"),
+        year: Number(getVal("year", "counselling_year", "session").replace(/,/g, "")) || 2025,
+        state_slug: (getVal("state_slug", "state", "state_name") || (col ? col.state_slug : "rajasthan")).toLowerCase().replace(/\s+/g, "-"),
+        category: getVal("category", "seat_category", "caste_category") || "General",
+        quota: getVal("quota", "seat_quota", "category_quota") || "AIQ",
+        round: getVal("round", "counselling_round", "allotment_round") || "Round 1",
+        opening_rank: openingStr ? Number(openingStr.replace(/,/g, "")) : undefined,
+        closing_rank: Number(closingStr.replace(/,/g, "")) || 1000,
       };
     });
 
