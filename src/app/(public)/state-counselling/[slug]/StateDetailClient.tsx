@@ -25,28 +25,42 @@ export default function StateDetailClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (!slug) return;
     const load = () => {
-      const decodedSlug = decodeURIComponent(slug).toLowerCase().trim();
-      const st = store.states.find(
-        (s) =>
-          s.slug.toLowerCase() === decodedSlug ||
-          s.slug.toLowerCase().replace(/-/g, "") === decodedSlug.replace(/-/g, "") ||
-          s.name.toLowerCase() === decodedSlug ||
-          s.name.toLowerCase().replace(/\s+/g, "-") === decodedSlug ||
-          s.id === decodedSlug
-      );
+      let decodedSlug = slug;
+      try {
+        decodedSlug = decodeURIComponent(slug);
+      } catch (e) {
+        decodedSlug = slug;
+      }
+      const cleanSlug = (decodedSlug || "").toLowerCase().trim();
+      if (!cleanSlug) return;
+
+      const st = store.states.find((s) => {
+        if (!s) return false;
+        const sSlug = (s.slug || "").toLowerCase().trim();
+        const sName = (s.name || "").toLowerCase().trim();
+        const sId = (s.id || "").toLowerCase().trim();
+
+        return (
+          sSlug === cleanSlug ||
+          sSlug.replace(/-/g, "") === cleanSlug.replace(/-/g, "") ||
+          sName === cleanSlug ||
+          sName.replace(/\s+/g, "-") === cleanSlug ||
+          sId === cleanSlug
+        );
+      });
 
       if (st) {
         setStateData(st);
-        const cleanSlug = st.slug.toLowerCase().trim();
-        const cleanName = st.name.toLowerCase().trim();
+        const stSlug = (st.slug || "").toLowerCase().trim();
+        const stName = (st.name || "").toLowerCase().trim();
 
         const matchState = (targetSlug?: string) => {
           if (!targetSlug) return false;
           const clean = targetSlug.toLowerCase().trim();
           return (
-            clean === cleanSlug ||
-            clean === cleanName ||
-            clean.replace(/-/g, "") === cleanSlug.replace(/-/g, "")
+            clean === stSlug ||
+            clean === stName ||
+            clean.replace(/-/g, "") === stSlug.replace(/-/g, "")
           );
         };
 
@@ -73,7 +87,7 @@ export default function StateDetailClient({ slug }: { slug: string }) {
         <p className="text-sm text-slate-500">No counselling details found for this state in our directory.</p>
         <Link
           href="/state-counselling"
-          className="inline-flex items-center space-x-2 bg-brand-blue text-white px-4 py-2 rounded-xl text-xs font-bold"
+          className="inline-flex items-center space-x-2 bg-brand-blue text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-brand-hover transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to All States</span>
@@ -105,20 +119,22 @@ export default function StateDetailClient({ slug }: { slug: string }) {
               {stateData.name} NEET UG Counselling 2026
             </h1>
             <p className="text-sm text-slate-600 font-medium">
-              Counselling Authority: <strong className="text-brand-dark">{stateData.counselling_authority}</strong>
+              Counselling Authority: <strong className="text-brand-dark">{stateData.counselling_authority || "State Medical Board"}</strong>
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <a
-              href={stateData.official_website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-brand-dark text-xs font-bold px-4 py-2.5 rounded-xl transition-all"
-            >
-              <span>Official Website</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            {stateData.official_website && (
+              <a
+                href={stateData.official_website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-brand-dark text-xs font-bold px-4 py-2.5 rounded-xl transition-all"
+              >
+                <span>Official Website</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
             {stateData.registration_link && (
               <a
                 href={stateData.registration_link}

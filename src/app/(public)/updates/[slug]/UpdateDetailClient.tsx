@@ -21,9 +21,18 @@ export default function UpdateDetailClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (!slug) return;
     const load = () => {
-      const decodedSlug = decodeURIComponent(slug).toLowerCase();
+      let decodedSlug = slug;
+      try {
+        decodedSlug = decodeURIComponent(slug);
+      } catch (e) {
+        decodedSlug = slug;
+      }
+      const cleanSlug = (decodedSlug || "").toLowerCase().trim();
       const item = store.updates.find(
-        (u) => u.slug.toLowerCase() === decodedSlug || u.slug.toLowerCase() === slug.toLowerCase()
+        (u) =>
+          u &&
+          ((u.slug || "").toLowerCase() === cleanSlug ||
+            (u.slug || "").toLowerCase() === (slug || "").toLowerCase())
       );
       if (item) setUpdateItem(item);
     };

@@ -24,12 +24,19 @@ export default function CollegeDetailClient({ slug }: { slug: string }) {
     if (!slug) return;
 
     const loadCollegeData = () => {
-      const decodedSlug = decodeURIComponent(slug).toLowerCase();
+      let decodedSlug = slug;
+      try {
+        decodedSlug = decodeURIComponent(slug);
+      } catch (e) {
+        decodedSlug = slug;
+      }
+      const cleanSlug = (decodedSlug || "").toLowerCase().trim();
       const col = store.colleges.find(
         (c) =>
-          c.slug.toLowerCase() === decodedSlug ||
-          c.slug.toLowerCase() === slug.toLowerCase() ||
-          c.id === slug
+          c &&
+          ((c.slug || "").toLowerCase() === cleanSlug ||
+            (c.slug || "").toLowerCase() === (slug || "").toLowerCase() ||
+            c.id === slug)
       );
 
       if (col) {
