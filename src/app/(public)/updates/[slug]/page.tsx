@@ -6,19 +6,39 @@ interface Props {
   params: { slug: string };
 }
 
+function findUpdateBySlug(rawSlug?: string) {
+  if (!rawSlug) return null;
+  let decodedSlug = rawSlug;
+  try {
+    decodedSlug = decodeURIComponent(rawSlug);
+  } catch (e) {
+    decodedSlug = rawSlug;
+  }
+  const cleanSlug = (decodedSlug || "").toLowerCase().trim();
+  if (!cleanSlug) return null;
+
+  return (
+    store.updates.find(
+      (u) =>
+        u &&
+        ((u.slug || "").toLowerCase() === cleanSlug ||
+          (u.slug || "").toLowerCase() === (rawSlug || "").toLowerCase() ||
+          u.id === rawSlug)
+    ) || null
+  );
+}
+
 export async function generateStaticParams() {
-  return store.updates.map((u) => ({
-    slug: u.slug,
-  }));
+  return store.updates
+    .filter((u) => u && u.slug)
+    .map((u) => ({
+      slug: u.slug,
+    }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const decodedSlug = decodeURIComponent(params.slug).toLowerCase();
-  const updateItem = store.updates.find(
-    (u) =>
-      u.slug.toLowerCase() === decodedSlug ||
-      u.slug.toLowerCase() === params.slug.toLowerCase()
-  );
+  const slugParam = params?.slug || "";
+  const updateItem = findUpdateBySlug(slugParam);
 
   if (!updateItem) {
     return {
@@ -61,12 +81,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function UpdateDetailPage({ params }: Props) {
-  const decodedSlug = decodeURIComponent(params.slug).toLowerCase();
-  const updateItem = store.updates.find(
-    (u) =>
-      u.slug.toLowerCase() === decodedSlug ||
-      u.slug.toLowerCase() === params.slug.toLowerCase()
-  );
+  const slugParam = params?.slug || "";
+  const updateItem = findUpdateBySlug(slugParam);
 
   const newsArticleSchema = updateItem
     ? {
@@ -100,7 +116,7 @@ export default function UpdateDetailPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(newsArticleSchema) }}
         />
       )}
-      <UpdateDetailClient slug={params.slug} />
+      <UpdateDetailClient slug={slugParam} initialUpdate={updateItem} />
     </>
   );
 }

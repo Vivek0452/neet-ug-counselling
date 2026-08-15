@@ -15,10 +15,22 @@ import {
 import { store } from "@/lib/mockData";
 import { CollegeItem, CutoffItem, SeatMatrixItem } from "@/types";
 
-export default function CollegeDetailClient({ slug }: { slug: string }) {
-  const [college, setCollege] = useState<CollegeItem | null>(null);
-  const [cutoffs, setCutoffs] = useState<CutoffItem[]>([]);
-  const [seats, setSeats] = useState<SeatMatrixItem[]>([]);
+interface Props {
+  slug: string;
+  initialCollege?: CollegeItem | null;
+  initialCutoffs?: CutoffItem[];
+  initialSeats?: SeatMatrixItem[];
+}
+
+export default function CollegeDetailClient({
+  slug,
+  initialCollege,
+  initialCutoffs = [],
+  initialSeats = [],
+}: Props) {
+  const [college, setCollege] = useState<CollegeItem | null>(initialCollege || null);
+  const [cutoffs, setCutoffs] = useState<CutoffItem[]>(initialCutoffs);
+  const [seats, setSeats] = useState<SeatMatrixItem[]>(initialSeats);
 
   useEffect(() => {
     if (!slug) return;

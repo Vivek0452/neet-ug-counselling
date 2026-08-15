@@ -16,11 +16,25 @@ import { store } from "@/lib/mockData";
 import { StateItem, UpdateItem, ImportantDateItem, CollegeItem } from "@/types";
 import { formatDate } from "@/lib/utils";
 
-export default function StateDetailClient({ slug }: { slug: string }) {
-  const [stateData, setStateData] = useState<StateItem | null>(null);
-  const [updates, setUpdates] = useState<UpdateItem[]>([]);
-  const [dates, setDates] = useState<ImportantDateItem[]>([]);
-  const [colleges, setColleges] = useState<CollegeItem[]>([]);
+interface Props {
+  slug: string;
+  initialState?: StateItem | null;
+  initialUpdates?: UpdateItem[];
+  initialDates?: ImportantDateItem[];
+  initialColleges?: CollegeItem[];
+}
+
+export default function StateDetailClient({
+  slug,
+  initialState,
+  initialUpdates = [],
+  initialDates = [],
+  initialColleges = [],
+}: Props) {
+  const [stateData, setStateData] = useState<StateItem | null>(initialState || null);
+  const [updates, setUpdates] = useState<UpdateItem[]>(initialUpdates);
+  const [dates, setDates] = useState<ImportantDateItem[]>(initialDates);
+  const [colleges, setColleges] = useState<CollegeItem[]>(initialColleges);
 
   useEffect(() => {
     if (!slug) return;
@@ -71,10 +85,9 @@ export default function StateDetailClient({ slug }: { slug: string }) {
         );
         setDates(store.dates.filter((d) => matchState(d.state_slug)));
         setColleges(store.colleges.filter((c) => matchState(c.state_slug)));
-      } else {
-        setStateData(null);
       }
     };
+
     load();
     const unsub = store.subscribe(load);
     return () => unsub();

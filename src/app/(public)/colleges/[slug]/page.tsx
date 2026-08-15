@@ -6,20 +6,39 @@ interface Props {
   params: { slug: string };
 }
 
+function findCollegeBySlug(rawSlug?: string) {
+  if (!rawSlug) return null;
+  let decodedSlug = rawSlug;
+  try {
+    decodedSlug = decodeURIComponent(rawSlug);
+  } catch (e) {
+    decodedSlug = rawSlug;
+  }
+  const cleanSlug = (decodedSlug || "").toLowerCase().trim();
+  if (!cleanSlug) return null;
+
+  return (
+    store.colleges.find(
+      (c) =>
+        c &&
+        ((c.slug || "").toLowerCase() === cleanSlug ||
+          (c.slug || "").toLowerCase() === (rawSlug || "").toLowerCase() ||
+          c.id === rawSlug)
+    ) || null
+  );
+}
+
 export async function generateStaticParams() {
-  return store.colleges.map((c) => ({
-    slug: c.slug,
-  }));
+  return store.colleges
+    .filter((c) => c && c.slug)
+    .map((c) => ({
+      slug: c.slug,
+    }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const decodedSlug = decodeURIComponent(params.slug).toLowerCase();
-  const college = store.colleges.find(
-    (c) =>
-      c.slug.toLowerCase() === decodedSlug ||
-      c.slug.toLowerCase() === params.slug.toLowerCase() ||
-      c.id === params.slug
-  );
+  const slugParam = params?.slug || "";
+  const college = findCollegeBySlug(slugParam);
 
   if (!college) {
     return {
@@ -61,13 +80,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function CollegeDetailPage({ params }: Props) {
-  const decodedSlug = decodeURIComponent(params.slug).toLowerCase();
-  const college = store.colleges.find(
-    (c) =>
-      c.slug.toLowerCase() === decodedSlug ||
-      c.slug.toLowerCase() === params.slug.toLowerCase() ||
-      c.id === params.slug
-  );
+  const slugParam = params?.slug || "";
+  const college = findCollegeBySlug(slugParam);
+
+  let initialCutoffs: any[] = [];
+  let initialSeats: any[] = [];
+
+  if (college) {
+    initialCutoffs = store.cutoffs.filter(
+      (k) =>
+        k.college_id === college.id ||
+        k.college_name.toLowerCase() === college.name.toLowerCase()
+    );
+    initialSeats = store.seatMatrix.filter(
+      (s) =>
+        s.college_id === college.id ||
+        s.college_name.toLowerCase() === college.name.toLowerCase()
+    );
+  }
 
   const collegeSchema = college
     ? {
@@ -93,7 +123,12 @@ export default function CollegeDetailPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(collegeSchema) }}
         />
       )}
-      <CollegeDetailClient slug={params.slug} />
+      <CollegeDetailClient
+        slug={slugParam}
+        initialCollege={college}
+        initialCutoffs={initialCutoffs}
+        initialSeats={initialSeats}
+      />
     </>
   );
 }

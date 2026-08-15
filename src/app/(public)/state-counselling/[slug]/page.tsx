@@ -6,29 +6,46 @@ interface Props {
   params: { slug: string };
 }
 
-function findStateBySlug(slug: string) {
-  if (!slug) return null;
-  const decodedSlug = decodeURIComponent(slug).toLowerCase().trim();
+function findStateBySlug(rawSlug?: string) {
+  if (!rawSlug) return null;
+  let decodedSlug = rawSlug;
+  try {
+    decodedSlug = decodeURIComponent(rawSlug);
+  } catch (e) {
+    decodedSlug = rawSlug;
+  }
+  const cleanSlug = (decodedSlug || "").toLowerCase().trim();
+  if (!cleanSlug) return null;
+
   return (
-    store.states.find(
-      (s) =>
-        s.slug.toLowerCase() === decodedSlug ||
-        s.slug.toLowerCase().replace(/-/g, "") === decodedSlug.replace(/-/g, "") ||
-        s.name.toLowerCase() === decodedSlug ||
-        s.name.toLowerCase().replace(/\s+/g, "-") === decodedSlug ||
-        s.id === decodedSlug
-    ) || null
+    store.states.find((s) => {
+      if (!s) return false;
+      const sSlug = (s.slug || "").toLowerCase().trim();
+      const sName = (s.name || "").toLowerCase().trim();
+      const sId = (s.id || "").toLowerCase().trim();
+
+      return (
+        sSlug === cleanSlug ||
+        sSlug.replace(/-/g, "") === cleanSlug.replace(/-/g, "") ||
+        sName === cleanSlug ||
+        sName.replace(/\s+/g, "-") === cleanSlug ||
+        sId === cleanSlug
+      );
+    }) || null
   );
 }
 
 export async function generateStaticParams() {
-  return store.states.map((s) => ({
-    slug: s.slug,
-  }));
+  return store.states
+    .filter((s) => s && s.slug)
+    .map((s) => ({
+      slug: s.slug,
+    }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const stateData = findStateBySlug(params.slug);
+  const slugParam = params?.slug || "";
+  const stateData = findStateBySlug(slugParam);
 
   if (!stateData) {
     return {
@@ -38,14 +55,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const title = `${stateData.name} NEET UG Counselling 2026 — Process, Fees & Eligibility`;
-  const description = `${stateData.name} 85% State Quota counselling conducted by ${stateData.counselling_authority}. Official portal: ${stateData.official_website}. Registration, document list, college cutoff ranks, and seat matrix.`;
+  const description = `${stateData.name} 85% State Quota counselling conducted by ${stateData.counselling_authority || "State Medical Board"}. Official portal: ${stateData.official_website || "https://mcc.nic.in"}. Registration, document list, college cutoff ranks, and seat matrix.`;
 
   return {
     title,
     description,
     keywords: [
       `${stateData.name} NEET UG Counselling 2026`,
-      `${stateData.counselling_authority} Registration`,
+      `${stateData.counselling_authority || ""} Registration`,
       `${stateData.name} MBBS Seat Matrix`,
       `${stateData.name} Medical College Cutoff`,
       `${stateData.name} 85% State Quota`,
@@ -69,15 +86,41 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function StateDetailPage({ params }: Props) {
-  const stateData = findStateBySlug(params.slug);
+  const slugParam = params?.slug || "";
+  const stateData = findStateBySlug(slugParam);
+
+  let initialUpdates: any[] = [];
+  let initialDates: any[] = [];
+  let initialColleges: any[] = [];
+
+  if (stateData) {
+    const cleanSlug = (stateData.slug || "").toLowerCase().trim();
+    const cleanName = (stateData.name || "").toLowerCase().trim();
+
+    const matchState = (targetSlug?: string) => {
+      if (!targetSlug) return false;
+      const clean = targetSlug.toLowerCase().trim();
+      return (
+        clean === cleanSlug ||
+        clean === cleanName ||
+        clean.replace(/-/g, "") === cleanSlug.replace(/-/g, "")
+      );
+    };
+
+    initialUpdates = store.updates.filter(
+      (u) => matchState(u.state_slug) && u.status === "published"
+    );
+    initialDates = store.dates.filter((d) => matchState(d.state_slug));
+    initialColleges = store.colleges.filter((c) => matchState(c.state_slug));
+  }
 
   const stateSchema = stateData
     ? {
         "@context": "https://schema.org",
         "@type": "EducationalOrganization",
         name: `${stateData.name} Medical Counselling Authority`,
-        alternateName: stateData.counselling_authority,
-        url: stateData.official_website,
+        alternateName: stateData.counselling_authority || stateData.name,
+        url: stateData.official_website || "https://mcc.nic.in",
         description: `Official state body conducting 85% state quota MBBS/BDS counselling for ${stateData.name}.`,
       }
     : null;
@@ -90,7 +133,13 @@ export default function StateDetailPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(stateSchema) }}
         />
       )}
-      <StateDetailClient slug={params.slug} />
+      <StateDetailClient
+        slug={slugParam}
+        initialState={stateData}
+        initialUpdates={initialUpdates}
+        initialDates={initialDates}
+        initialColleges={initialColleges}
+      />
     </>
   );
 }
