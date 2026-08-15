@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { store } from "@/lib/mockData";
 import StateDetailClient from "./StateDetailClient";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }> | { slug: string };
+}
+
+async function getSlug(params: Props["params"]): Promise<string> {
+  if (!params) return "";
+  const resolvedParams = await (params instanceof Promise ? params : Promise.resolve(params));
+  return resolvedParams?.slug || "";
 }
 
 function findStateBySlug(rawSlug?: string) {
@@ -44,7 +51,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const slugParam = params?.slug || "";
+  const slugParam = await getSlug(params);
   const stateData = findStateBySlug(slugParam);
 
   if (!stateData) {
@@ -85,9 +92,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function StateDetailPage({ params }: Props) {
-  const slugParam = params?.slug || "";
+export default async function StateDetailPage({ params }: Props) {
+  const slugParam = await getSlug(params);
   const stateData = findStateBySlug(slugParam);
+
+  if (!stateData) {
+    notFound();
+  }
 
   let initialUpdates: any[] = [];
   let initialDates: any[] = [];

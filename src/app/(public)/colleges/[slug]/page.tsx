@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { store } from "@/lib/mockData";
 import CollegeDetailClient from "./CollegeDetailClient";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }> | { slug: string };
+}
+
+async function getSlug(params: Props["params"]): Promise<string> {
+  if (!params) return "";
+  const resolvedParams = await (params instanceof Promise ? params : Promise.resolve(params));
+  return resolvedParams?.slug || "";
 }
 
 function findCollegeBySlug(rawSlug?: string) {
@@ -37,7 +44,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const slugParam = params?.slug || "";
+  const slugParam = await getSlug(params);
   const college = findCollegeBySlug(slugParam);
 
   if (!college) {
@@ -79,9 +86,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function CollegeDetailPage({ params }: Props) {
-  const slugParam = params?.slug || "";
+export default async function CollegeDetailPage({ params }: Props) {
+  const slugParam = await getSlug(params);
   const college = findCollegeBySlug(slugParam);
+
+  if (!college) {
+    notFound();
+  }
 
   let initialCutoffs: any[] = [];
   let initialSeats: any[] = [];

@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { store } from "@/lib/mockData";
 import UpdateDetailClient from "./UpdateDetailClient";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }> | { slug: string };
+}
+
+async function getSlug(params: Props["params"]): Promise<string> {
+  if (!params) return "";
+  const resolvedParams = await (params instanceof Promise ? params : Promise.resolve(params));
+  return resolvedParams?.slug || "";
 }
 
 function findUpdateBySlug(rawSlug?: string) {
@@ -37,7 +44,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const slugParam = params?.slug || "";
+  const slugParam = await getSlug(params);
   const updateItem = findUpdateBySlug(slugParam);
 
   if (!updateItem) {
@@ -80,9 +87,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function UpdateDetailPage({ params }: Props) {
-  const slugParam = params?.slug || "";
+export default async function UpdateDetailPage({ params }: Props) {
+  const slugParam = await getSlug(params);
   const updateItem = findUpdateBySlug(slugParam);
+
+  if (!updateItem) {
+    notFound();
+  }
 
   const newsArticleSchema = updateItem
     ? {
