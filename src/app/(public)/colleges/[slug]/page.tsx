@@ -3,14 +3,11 @@ import { notFound } from "next/navigation";
 import { store } from "@/lib/mockData";
 import CollegeDetailClient from "./CollegeDetailClient";
 
-interface Props {
-  params: Promise<{ slug: string }> | { slug: string };
-}
+export const dynamic = "force-static";
+export const dynamicParams = true;
 
-async function getSlug(params: Props["params"]): Promise<string> {
-  if (!params) return "";
-  const resolvedParams = await (params instanceof Promise ? params : Promise.resolve(params));
-  return resolvedParams?.slug || "";
+interface Props {
+  params: { slug: string };
 }
 
 function findCollegeBySlug(rawSlug?: string) {
@@ -44,7 +41,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const slugParam = await getSlug(params);
+  const slugParam = params?.slug || "";
   const college = findCollegeBySlug(slugParam);
 
   if (!college) {
@@ -86,8 +83,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function CollegeDetailPage({ params }: Props) {
-  const slugParam = await getSlug(params);
+export default function CollegeDetailPage({ params }: Props) {
+  const slugParam = params?.slug || "";
   const college = findCollegeBySlug(slugParam);
 
   if (!college) {
