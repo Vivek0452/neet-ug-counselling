@@ -1,7 +1,6 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { PrismaClient } from "@prisma/client";
 import {
   INITIAL_UPDATES,
   INITIAL_STATES,
@@ -10,12 +9,12 @@ import {
   INITIAL_COLLEGES,
   INITIAL_CUTOFFS,
   INITIAL_SEAT_MATRIX,
-  INITIAL_MCC_INFO,
-  INITIAL_CONTACTS,
-  INITIAL_LOGS,
-  INITIAL_MEDIA,
 } from "../src/lib/mockData";
 
+// Dynamically require PrismaClient to prevent build-time typecheck errors on Vercel
+// when prisma generate has not been run prior to next build.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function seed() {
