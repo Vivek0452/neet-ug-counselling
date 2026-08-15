@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { store } from "@/lib/mockData";
 import UpdateDetailClient from "./UpdateDetailClient";
 
-export const dynamic = "force-static";
-export const dynamicParams = true;
+export const dynamic = "force-dynamic";
 
 interface Props {
   params: { slug: string };
@@ -30,14 +29,6 @@ function findUpdateBySlug(rawSlug?: string) {
           u.id === rawSlug)
     ) || null
   );
-}
-
-export async function generateStaticParams() {
-  return store.updates
-    .filter((u) => u && u.slug)
-    .map((u) => ({
-      slug: u.slug,
-    }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

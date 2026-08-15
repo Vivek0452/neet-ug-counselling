@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { store } from "@/lib/mockData";
 import StateDetailClient from "./StateDetailClient";
 
-export const dynamic = "force-static";
-export const dynamicParams = true;
+export const dynamic = "force-dynamic";
 
 interface Props {
   params: { slug: string };
@@ -37,14 +36,6 @@ function findStateBySlug(rawSlug?: string) {
       );
     }) || null
   );
-}
-
-export async function generateStaticParams() {
-  return store.states
-    .filter((s) => s && s.slug)
-    .map((s) => ({
-      slug: s.slug,
-    }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
